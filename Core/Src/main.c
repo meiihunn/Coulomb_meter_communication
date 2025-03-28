@@ -36,10 +36,10 @@ volatile uint16_t count_time_received_1 =0;
 volatile uint16_t count_time_received_flag_1 =0;
 volatile uint16_t count_time_received_2 =0;
 volatile uint16_t count_time_received_flag_2 =0;
-uint8_t rx_buffer_1[9];
-uint8_t tx_buffer_1[9];
-uint8_t rx_buffer_2[9];
-uint8_t tx_buffer_2[9];
+uint8_t rx_buffer_1[32];
+uint8_t tx_buffer_1[32];
+uint8_t rx_buffer_2[32];
+uint8_t tx_buffer_2[32];
 uint8_t rx_data_1=0;
 uint8_t rx_data_2=0;
 uint8_t rx_count_1;
@@ -96,14 +96,27 @@ void Host_receive_response_set(){
 		}
 	}
 }
-void STM_received_from_PC(){
-	if(memcmp(rx_buffer_2, tx_buffer_2, sizeof(tx_buffer_2)) ==0){
-		HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
-		HAL_Delay(500);
-		HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
+void Host_receive_response_read(){
+	uint8_t received_checksum = rx_buffer_1[21-1];
+	uint8_t calculated_checksum = Checksum(rx_buffer_1, 21-1);
+	if (rx_buffer_1[0]== 0xB5 && rx_buffer_1[1]==0x5B && rx_buffer_1[2]==0x01){
+		if (rx_buffer_1 [3]== tx_buffer_1[3]){
+			if(received_checksum == calculated_checksum){
 
+				memcpy(tx_buffer_2, rx_buffer_1, sizeof(rx_buffer_1));
+				trans_2_flag=1;
+			}
+		}
 	}
 }
+//void STM_received_from_PC(){
+//	if(memcmp(rx_buffer_2, tx_buffer_2, sizeof(tx_buffer_2)) ==0){
+//		HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
+//		HAL_Delay(500);
+//		HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
+//
+//	}
+//}
 
 /* USER CODE END PV */
 
@@ -140,10 +153,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
     	if(count_time_received_1 > 100 && rx_count_1 >0){
     		count_time_received_flag_1 =1;
     	}
-    	count_time_received_2++;
-    	if(count_time_received_2 >100 && rx_count_2 >0){
-    		count_time_received_flag_2 =1;
-    	}
+//    	count_time_received_2++;
+//    	if(count_time_received_2 >100 && rx_count_2 >0){
+//    		count_time_received_flag_2 =1;
+//    	}
     }
 }
 //void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
@@ -197,22 +210,16 @@ int main(void)
 
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_SET); // set pin High de truyen data
   //gui ham ghi xuong thiet bi
-  Host_send_request(&huart1, 0x0D, 0x01, 0x00, 0x00, 0x00);
+  Host_send_request(&huart1, 0x01, 0x00, 0x00, 0x00, 0x00);
   HAL_Delay(10);
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_RESET); // set pin Low de nhan data
-//  HAL_UARTEx_ReceiveToIdle_IT(&huart1, rx_data, 16);
 
-//  HAL_UART_Transmit(&huart1,tx_data, sizeof(tx_data), 100);
-//  HAL_UART_Receive_IT(&huart1, &rx_data, 1);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 
-//	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET);
-//	char test_msg[] = "Hello PC!\r\n";
-//	HAL_UART_Transmit(&huart2, (uint8_t *)test_msg, strlen(test_msg), 100);
-//	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_RESET);
+
   while (1)
   {
     /* USER CODE END WHILE */
@@ -222,20 +229,27 @@ int main(void)
 //		  Host_receive_response_set();
 //	  }
 	  if(count_time_received_flag_1){
-		  Host_receive_response_set();
+		  if(tx_buffer_1[3]== 0x01 || tx_buffer_1[3]== 0x02){
+			  Host_receive_response_read();
+		  }
+		  else{
+			  Host_receive_response_set();
+		  }
 	  }
 	  if(trans_2_flag){
 		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET);
-		  HAL_UART_Transmit(&huart2, tx_buffer_2, 9,100);
+		  HAL_UART_Transmit(&huart2, tx_buffer_2, 21,100);
 		  memset(rx_buffer_1, 0, sizeof(rx_buffer_1));
 		  rx_count_1=0;
 		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_RESET);
 		  trans_2_flag=0;
 	  }
-	  if(count_time_received_flag_2){
+//	  if(count_time_received_flag_2){
+//
+//		  STM_received_from_PC();
+//	  }
 
-		  STM_received_from_PC();
-	  }
+
 //	  if(tx_buffer_2 != '\0'){
 //		  HAL_UART_Transmit(&huart2, tx_buffer_2, sizeof(tx_buffer_2),100);
 //
