@@ -23,6 +23,8 @@
 /* USER CODE BEGIN Includes */
 #include<stdio.h>
 #include<string.h>
+#include <stdint.h>
+#include "stm32f1xx_hal.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -79,7 +81,7 @@ void Host_send_request(UART_HandleTypeDef *huart, uint8_t command_code
 	tx_buffer_1[7]= data4;
 	uint8_t checksum = Checksum(tx_buffer_1, 8);
 	tx_buffer_1[8]= checksum;
-	HAL_UART_Transmit(&huart1, tx_buffer_1, 9,100);
+	HAL_UART_Transmit(&huart1, tx_buffer_1, 9,300);
 
 
 }
@@ -109,14 +111,90 @@ void Host_receive_response_read(){
 		}
 	}
 }
-//void STM_received_from_PC(){
-//	if(memcmp(rx_buffer_2, tx_buffer_2, sizeof(tx_buffer_2)) ==0){
-//		HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
-//		HAL_Delay(500);
-//		HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
+
+
+void Send_to_hercules(UART_HandleTypeDef *huart,uint8_t *tx_buffer_2) {
+	char buffer[512];
+	int len;
+	if(tx_buffer_1[3]== 0x01){
+
+		uint8_t command_header1 = (tx_buffer_2[0]);
+		uint8_t command_header2= tx_buffer_2[1];
+
+		uint8_t address = tx_buffer_2[2];
+		uint8_t command_code = tx_buffer_2[3];
+		uint8_t battery_percentage = tx_buffer_2[4];
+		float battery_capacity = (uint16_t)(tx_buffer_2[5]<<8|tx_buffer_2[6])/10.0;
+		float voltage = (uint16_t)((tx_buffer_2[7] << 8) | tx_buffer_2[8]) / 10.0;
+		float current = (uint16_t)((tx_buffer_2[9] << 8) | tx_buffer_2[10]) / 10.0;
+		uint32_t charging_wh = (uint32_t)(tx_buffer_2[11] << 16) | (tx_buffer_2[12] << 8) | tx_buffer_2[13];
+		uint32_t discharge_wh = (uint32_t)(tx_buffer_2[14] << 16) | (tx_buffer_2[15] << 8) | tx_buffer_2[16];
+		float temperature = (uint16_t)((tx_buffer_2[17] << 8) | tx_buffer_2[18])/10.0;
+	//    float temperature = temperature_raw / 10.0;
+		uint8_t current_direction = tx_buffer_2[19];
+		uint8_t checksum = tx_buffer_2[20];
+
+		len = sprintf(buffer,
+			"Command Header: %02X %02X\n"
+			"Address: %02X\n"
+			"Command Code: %02X\n"
+			"Remaining Battery Percentage: %d%%\n"
+			"Battery Capacity: %.1fAH\n"
+			"Voltage: %.1fV\n"
+			"Current: %.1fA\n"
+			"Charging WH: %dWH\n"
+			"Discharge WH: %dWH\n"
+			"Temperature: %.1f ^C\n"
+			"Current Direction: %02X\n"
+			"Checksum: %02X\n",
+			command_header1, command_header2 , address, command_code,
+			battery_percentage,battery_capacity, voltage, current, charging_wh,
+			discharge_wh, temperature, current_direction, checksum);
+
+	}
+	if(tx_buffer_1[3]== 0x02){
+		uint8_t command_header1 = (tx_buffer_2[0]);
+		uint8_t command_header2= tx_buffer_2[1];
+
+		uint8_t address = tx_buffer_2[2];
+		uint8_t command_code = tx_buffer_2[3];
+		uint8_t backlight = tx_buffer_2[4];
+		float battery_full = (uint16_t)(tx_buffer_2[5]<<8|tx_buffer_2[6])/10.0;
+		float low_voltage = (uint16_t)((tx_buffer_2[7] << 8) | tx_buffer_2[8]) / 10.0;
+		float high_voltage = (uint16_t)((tx_buffer_2[9] << 8) | tx_buffer_2[10]) / 10.0;
+		float high_current = (uint16_t)(tx_buffer_2[11] << 8 | tx_buffer_2[12])/10.0 ;
+		float rated_capacity = (uint16_t)(tx_buffer_2[13] << 8 | tx_buffer_2[14])/10.0 ;
+		uint8_t current_range = (uint16_t)((tx_buffer_2[15] << 8) | tx_buffer_2[16]);
+	//    float temperature = temperature_raw / 10.0;
+		float battery_undervoltage = (tx_buffer_2[17]<<8 |tx_buffer_2[18])/10.0;
+		uint8_t useless_data = tx_buffer_2[19];
+		uint8_t checksum = tx_buffer_2[20];
+
+		len = sprintf(buffer,
+			"Command Header: %02X %02X\n"
+			"Address: %02X\n"
+			"Command Code: %02X\n"
+			"Backlight: %d\n"
+			"Battery full charge voltage value: %.1fAH\n"
+			"Low voltage alarm voltage value: %.1fV\n"
+			"High voltage alarm voltage value: %.1fV\n"
+			"High current alarm voltage value: %dA\n"
+			"Rated capacity of the battery: %dWH\n"
+			"Current range: %.1f A\n"
+			"Battery undervoltage value: %.1fV\n"
+			"Useless data: %02X\n"
+			"Checksum: %02X\n",
+			command_header1, command_header2 , address, command_code,
+			backlight,battery_full, low_voltage, high_voltage, high_current,
+			rated_capacity, current_range, battery_undervoltage,useless_data, checksum);
+	}
+	HAL_UART_Transmit(huart, (uint8_t*)buffer, len,300);
+}
+
+
+//    uint8_t tx_buffer_2[21] = {0xB5, 0x5B, 0x00, 0x01, 0x01, 0x30, 0x30, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xE2, 0x00, 0x7B};
 //
-//	}
-//}
+//    return 0;
 
 /* USER CODE END PV */
 
@@ -174,8 +252,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 int main(void)
 {
 
-
-
   /* USER CODE BEGIN 1 */
 
   /* USER CODE END 1 */
@@ -210,7 +286,7 @@ int main(void)
 
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_SET); // set pin High de truyen data
   //gui ham ghi xuong thiet bi
-  Host_send_request(&huart1, 0x01, 0x00, 0x00, 0x00, 0x00);
+  Host_send_request(&huart1, 0x0B, 0x32, 0x00, 0x00, 0x00);
   HAL_Delay(10);
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_RESET); // set pin Low de nhan data
 
@@ -222,12 +298,14 @@ int main(void)
 
   while (1)
   {
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
 //	  if(rx_count > 0){
 //		  Host_receive_response_set();
 //	  }
+
 	  if(count_time_received_flag_1){
 		  if(tx_buffer_1[3]== 0x01 || tx_buffer_1[3]== 0x02){
 			  Host_receive_response_read();
@@ -238,7 +316,12 @@ int main(void)
 	  }
 	  if(trans_2_flag){
 		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET);
-		  HAL_UART_Transmit(&huart2, tx_buffer_2, 21,100);
+		  if(tx_buffer_1[3]== 0x01 || tx_buffer_1[3]== 0x02){
+			  Send_to_hercules(&huart2,tx_buffer_2);
+		  }
+		  else{
+			  HAL_UART_Transmit(&huart2, tx_buffer_2, 9,100);
+		  }
 		  memset(rx_buffer_1, 0, sizeof(rx_buffer_1));
 		  rx_count_1=0;
 		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_RESET);
