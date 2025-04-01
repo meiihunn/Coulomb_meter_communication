@@ -61,7 +61,7 @@ main-build: Coulomb_meter_communication.elf secondary-outputs
 
 # Tool invocations
 Coulomb_meter_communication.elf Coulomb_meter_communication.map: $(OBJS) $(USER_OBJS) D:\STM\Coulomb_meter_communication\STM32F103C8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "Coulomb_meter_communication.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"D:\STM\Coulomb_meter_communication\STM32F103C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Coulomb_meter_communication.map" -Wl,--gc-sections -static -u _printf_float --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+	arm-none-eabi-gcc -o "Coulomb_meter_communication.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"D:\STM\Coulomb_meter_communication\STM32F103C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Coulomb_meter_communication.map" -Wl,--gc-sections -static -u _printf_float --specs=nano.specs -mfloat-abi=soft -mthumb -u _printf_float -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

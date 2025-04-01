@@ -166,7 +166,9 @@ void Send_to_hercules(UART_HandleTypeDef *huart,uint8_t *tx_buffer_2) {
 		float rated_capacity = (uint16_t)(tx_buffer_2[13] << 8 | tx_buffer_2[14])/10.0 ;
 		uint8_t current_range = (uint16_t)((tx_buffer_2[15] << 8) | tx_buffer_2[16]);
 	//    float temperature = temperature_raw / 10.0;
-		float battery_undervoltage = (tx_buffer_2[17]<<8 |tx_buffer_2[18])/10.0;
+//		float battery_undervoltage = (uint16_t)(tx_buffer_2[17]<<8 |tx_buffer_2[18])/10.0;
+		uint16_t raw_value= (tx_buffer_2[17]<<8|tx_buffer_2[18]);
+		float battery_undervoltage = raw_value/10.0;
 		uint8_t useless_data = tx_buffer_2[19];
 		uint8_t checksum = tx_buffer_2[20];
 
@@ -174,19 +176,19 @@ void Send_to_hercules(UART_HandleTypeDef *huart,uint8_t *tx_buffer_2) {
 			"Command Header: %02X %02X\n"
 			"Address: %02X\n"
 			"Command Code: %02X\n"
+			"Battery undervoltage value: %3.1fV\n"
 			"Backlight: %d\n"
-			"Battery full charge voltage value: %.1fAH\n"
-			"Low voltage alarm voltage value: %.1fV\n"
-			"High voltage alarm voltage value: %.1fV\n"
+			"Battery full charge voltage value: %3.1fAH\n"
+			"Low voltage alarm voltage value: %3.1fV\n"
+			"High voltage alarm voltage value: %3.1fV\n"
 			"High current alarm voltage value: %dA\n"
 			"Rated capacity of the battery: %dWH\n"
-			"Current range: %.1f A\n"
-			"Battery undervoltage value: %.1fV\n"
+			"Current range: %3.1fA\n"
 			"Useless data: %02X\n"
 			"Checksum: %02X\n",
 			command_header1, command_header2 , address, command_code,
-			backlight,battery_full, low_voltage, high_voltage, high_current,
-			rated_capacity, current_range, battery_undervoltage,useless_data, checksum);
+			battery_undervoltage,backlight,battery_full, low_voltage, high_voltage, high_current,
+			rated_capacity, current_range ,useless_data, checksum);
 	}
 	HAL_UART_Transmit(huart, (uint8_t*)buffer, len,300);
 }
@@ -286,7 +288,7 @@ int main(void)
 
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_SET); // set pin High de truyen data
   //gui ham ghi xuong thiet bi
-  Host_send_request(&huart1, 0x0B, 0x32, 0x00, 0x00, 0x00);
+  Host_send_request(&huart1, 0x02, 0x00, 0x00, 0x00, 0x00);
   HAL_Delay(10);
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_RESET); // set pin Low de nhan data
 
@@ -471,7 +473,7 @@ static void MX_USART2_UART_Init(void)
 
   /* USER CODE END USART2_Init 1 */
   huart2.Instance = USART2;
-  huart2.Init.BaudRate = 9600;
+  huart2.Init.BaudRate = 19200;
   huart2.Init.WordLength = UART_WORDLENGTH_8B;
   huart2.Init.StopBits = UART_STOPBITS_1;
   huart2.Init.Parity = UART_PARITY_NONE;
